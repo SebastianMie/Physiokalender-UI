@@ -11,32 +11,29 @@
         </v-col>
       </v-row>
       <v-row>
-        <v-col>
-          <v-text-field
-            label="Aktiv seit"
+          <v-col cols="auto">
+            <v-checkbox label="Aktiv" v-model="therapistInput.isActive"></v-checkbox>
+          </v-col>
+          <v-col>
+          <div class="v-label">Aktiv seit</div>
+          <VueDatePicker
             v-model="therapistInput.activeSince"
-            type="date"
-            clearable
-          ></v-text-field>
+            :format="formatDate"
+            :format-locale="de"
+          />
         </v-col>
         <v-col>
-          <v-text-field
-            label="Aktiv bis"
+          <div class="v-label">Aktiv bis</div>
+          <VueDatePicker
             v-model="therapistInput.activeUntil"
-            type="date"
-            clearable
-          ></v-text-field>
+            :format="formatDate"
+            :format-locale="de"
+          />
         </v-col>
-        <v-col cols="auto">
-          <v-checkbox
-            label="Aktiv"
-            v-model="therapistInput.isActive"
-          ></v-checkbox>
-        </v-col>
-      </v-row>
+        </v-row>
     </v-card-text>
     <v-card-actions>
-      <v-btn color="error" @click="cancelChanges">Abbrechen</v-btn>
+      <v-btn color="grey" @click="cancelChanges">Abbrechen</v-btn>
       <v-spacer></v-spacer>
       <v-btn color="success" @click="saveChanges">Therapeut Erstellen</v-btn>
     </v-card-actions>
@@ -75,7 +72,7 @@ export default defineComponent({
     };
 
     const saveChanges = () => {
-      if (!therapistInput.value.firstName) {
+      if (!therapistInput.value.firstName || !therapistInput.value.lastName) {
         alert('Vorname und Nachname sind erforderlich.');
         return;
       }

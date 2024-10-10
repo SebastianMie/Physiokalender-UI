@@ -57,8 +57,6 @@
       @deleteSingle="deleteSingleAppointment"
       @cancel="singleAppointmentDialog = false"
     />
-
-
 </template>
 
 <script lang="ts">
@@ -111,6 +109,7 @@ export default defineComponent({
     const splits = ref<any[]>([]);
     const events = ref<any[]>([]);
     const conflicts = ref<SingleAppointment[] | []>([]);
+    const isRefreshing = ref(false);
 
     const customLocale = {
       weekDays: ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'],
@@ -156,18 +155,22 @@ export default defineComponent({
     const generateClassName = (index: number) => `split${(index) + 1}`;
 
     onMounted(() => {
-      refreshData();
+        refreshData();
     });
 
     watch(
       () => props.currentSingleDay,
       (newDate: Date) => {
-        selectedDate.value = newDate;
-        refreshData();
+          selectedDate.value = newDate;
+          refreshData();
       }
     );
 
     const refreshData = async () => {
+      // Überprüfen, ob bereits eine Aktualisierung läuft
+      if (isRefreshing.value) return;
+      
+      isRefreshing.value = true;
       isLoading.value = true;
       events.value = [];
       await loadTherapists();
@@ -175,8 +178,9 @@ export default defineComponent({
       for (const therapist of therapists.value) {
         await loadAbsences(therapist.id);
       }
-
+      
       isLoading.value = false;
+      isRefreshing.value = false;
     };
 
     const loadAppointments = async () => {
@@ -203,7 +207,7 @@ export default defineComponent({
           id: appointment.id,
           start: formatDateString(appointment.startTime),
           end: formatDateString(appointment.endTime),
-          title: appointment.patient.fullName,
+          title: appointment.patient.lastName + ' ' + appointment.patient.firstName,
           class: className,
           split: therapistIndex,
         };
@@ -227,11 +231,7 @@ export default defineComponent({
       await absenceStore.loadAbsences(therapistId, { date: selectedDate.value.toISOString().split('T')[0], weekday: getWeekdayForDate(selectedDate.value) });
       
       const therapistAbsences = absenceStore.getAbsencesForTherapist(therapistId);
-      console.log(therapistAbsences);
       const absenceEvents = therapistAbsences.map(absence => createAbsenceEvent(absence));
-
-      console.log(absenceEvents);
-
       // Ergänze die Abwesenheiten zu den bestehenden Events
       events.value = [...events.value, ...absenceEvents];
     };
@@ -410,6 +410,7 @@ export default defineComponent({
       events,
       therapists,
       isLoading,
+      isRefreshing,
       handleEventClick,
       handleDateClick,
       handleEventDrop,

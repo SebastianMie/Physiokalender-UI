@@ -178,6 +178,18 @@
       @cancel="appointmentSeriesDialog = false"
     />
 </v-card>
+<v-dialog v-model="deleteDialog" persistent max-width="290">
+  <v-card>
+    <v-card-title class="headline">{{ deleteDialogTitle }}</v-card-title>
+    <v-card-text>{{ deleteDialogMessage }}</v-card-text>
+    <v-card-actions>
+      <v-spacer></v-spacer>
+      <v-btn color="grey" text @click="deleteDialog = false">Abbrechen</v-btn>
+      <v-btn color="error" text @click="confirmDelete">{{ deleteConfirmButtonText }}</v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+
 </template>
 
 <script lang="ts">
@@ -198,6 +210,7 @@ import { formatDate, formatTime } from '@/class/Dateconversions';
 import User from '@/class/User';
 
 export default defineComponent({
+  emits: ['save', 'cancel'],
   components: {
     AbsenceDialog,
     SingleAppointmentDialog,
@@ -228,9 +241,13 @@ export default defineComponent({
     const singleAppointmentDialog = ref(false);
     const appointmentSeriesDialog = ref(false);
     const absenceDialog = ref(false);
+    const deleteDialog = ref(false);
+    const deleteDialogTitle = ref('Therapist Löschen?');
+    const deleteDialogMessage = ref('');
+    const deleteConfirmButtonText = ref('Löschen');
 
     const appointmentHeaders = ref([
-      { title: 'Patient', value: 'patient.fullName', sortable: true },
+      { title: 'Patient', value: 'patient.lastName' + ' ' + 'patient.firstName', sortable: true },
       { title: 'Datum', value: 'date', sortable: true },
       { title: 'Von', value: 'startTime', sortable: true },
       { title: 'Bis', value: 'endTime', sortable: true },
@@ -238,7 +255,7 @@ export default defineComponent({
     ]);
 
     const appointmentSeriesHeaders = ref([
-      { title: 'Patient', value: 'patient.fullName', sortable: true },
+      { title: 'Patient', value: 'patient.lastName' + ' ' + 'patient.firstName', sortable: true },
       { title: 'Wochentag', value: 'weekday', sortable: true },
       { title: 'Von', value: 'startTime', sortable: true },
       { title: 'Bis', value: 'endTime', sortable: true },
@@ -311,10 +328,49 @@ export default defineComponent({
       }
     };
 
-    const deleteTherapist = () => {
-      if (therapistInput.value) {
-        emit('deleteTherapist', { therapist: therapistInput.value });
+    const deleteTherapist = async () => {
+      try {
+        // Überprüfe, ob der Therapeut noch Termine hat
+        const appointments = await appointmentStore.getAppointmentsByTherapistId(therapistInput.value.id);
+
+        if (appointments.length > 0) {
+          // Falls Termine vorhanden sind, auf inaktiv setzen
+          deleteDialogTitle.value = 'Therapist inaktiv setzen?';
+          deleteDialogMessage.value = 'Der Therapeut hat noch bestehende Termine. Möchten Sie den Therapeuten auf inaktiv setzen?';
+          deleteConfirmButtonText.value = 'Inaktiv setzen';
+        } else {
+          // Falls keine Termine vorhanden sind, löschen
+          deleteDialogTitle.value = 'Therapist Löschen?';
+          deleteDialogMessage.value = 'Möchten Sie diesen Therapeuten wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.';
+          deleteConfirmButtonText.value = 'Löschen';
+        }
+
+        deleteDialog.value = true;
+      } catch (error) {
+        console.error('Fehler beim Überprüfen der Termine:', error);
       }
+    };
+
+    const confirmDelete = async () => {
+      try {
+        const appointments = await appointmentStore.getAppointmentsByTherapistId(therapistInput.value.id);
+        
+        if (appointments.length > 0) {
+          // Therapeuten auf inaktiv setzen, wenn Termine vorhanden sind
+          therapistInput.value.isActive = false;
+          console.log(therapistInput.value);
+          
+          await therapistStore.updateTherapist(therapistInput.value.id, therapistInput.value);
+        } else {
+          // Therapeuten löschen, wenn keine Termine vorhanden sind
+          await therapistStore.deleteTherapist(therapistInput.value.id);
+        }
+      } catch (error) {
+        console.error('Fehler beim Löschen/Inaktivsetzen des Therapeuten:', error);
+        alert('Fehler beim Verarbeiten des Therapeuten.');
+      }
+      deleteDialog.value = false;
+      emit('cancel');
     };
 
     const changeSingleAppointment = async (appointment: SingleAppointment) => {
@@ -421,6 +477,10 @@ export default defineComponent({
       cancelChanges,
       saveChanges,
       deleteTherapist,
+      deleteDialogTitle,
+      deleteDialogMessage,
+      deleteConfirmButtonText,
+      deleteDialog,
       changeSingleAppointment,
       changeSeriesAppointment,
       deleteSingleAppointment,
@@ -444,6 +504,7 @@ export default defineComponent({
       absenceDialog,
       showAbsenceDialog,
       changeAbsence,
+      confirmDelete,
     };
   },
 });

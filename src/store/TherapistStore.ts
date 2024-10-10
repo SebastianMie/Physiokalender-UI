@@ -50,7 +50,7 @@ export const useTherapistStore = defineStore('therapist', {
 
     async addTherapist(therapist: Therapist): Promise<void> {
       try {
-        therapist.fullName = therapist.firstName + ' ' + therapist.lastName;
+        therapist.fullName = therapist.lastName + ' ' + therapist.firstName;
         const therapistDTO = convertToTherapistDTO(therapist);
         await apiClient.post('therapists', therapistDTO);
         toast.success('Therapeut erfolgreich erstellt');
@@ -62,7 +62,7 @@ export const useTherapistStore = defineStore('therapist', {
 
     async updateTherapist(id: number, therapist: Therapist): Promise<void> {
       try {
-        therapist.fullName = therapist.firstName + ' ' + therapist.lastName;
+       therapist.fullName = therapist.lastName + ' ' + therapist.firstName;
         const therapistDTO = convertToTherapistDTO(therapist);
         await apiClient.put(`therapists/${id}`, therapistDTO);
         toast.success('Therapeut erfolgreich gespeichert');

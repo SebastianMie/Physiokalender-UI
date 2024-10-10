@@ -65,7 +65,6 @@
         <TherapistDetail
           :therapistId="selectedTherapist.id"
           @save="saveTherapistChanges"
-          @deleteTherapist="deleteTherapist"
           @cancel="closeDetailDialog"
         />
       </v-card>
@@ -128,14 +127,6 @@ export default defineComponent({
       }
     };
 
-    const deleteTherapist = async (event: { therapist: Therapist }) => {
-      if (event.therapist) {
-        await therapistStore.deleteTherapist(event.therapist.id);
-        await loadTherapists();
-        closeDetailDialog();
-      }
-    };
-
     const createTherapist = async (event: { therapist: Therapist }) => {
       if (event.therapist) {
         await therapistStore.addTherapist(event.therapist);
@@ -182,7 +173,6 @@ export default defineComponent({
       loadTherapists,
       showDetail,
       saveTherapistChanges,
-      deleteTherapist,
       createTherapist,
       closeDetailDialog,
       closeCreateTherapistDialog,
